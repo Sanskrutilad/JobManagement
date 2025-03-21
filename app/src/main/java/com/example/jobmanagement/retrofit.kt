@@ -40,6 +40,9 @@ interface ApiService {
     @POST("jobs")
     suspend fun createJob(@Body job: Job): Job
 
+    @GET("jobs/{id}")
+    suspend fun getJobById(@Path("id") jobId: String): Job
+
     @PUT("jobs/{id}")
     suspend fun updateJob(@Path("id") id: String, @Body job: Job): Job
 
@@ -55,4 +58,5 @@ class JobRepository {
     suspend fun createJob(job: Job) = withContext(Dispatchers.IO) { api.createJob(job) }
     suspend fun updateJob(id: String, job: Job) = withContext(Dispatchers.IO) { api.updateJob(id, job) }
     suspend fun deleteJob(id: String) = withContext(Dispatchers.IO) { api.deleteJob(id) }
+    suspend fun getJobById(jobId: String) = withContext(Dispatchers.IO) { api.getJobById(jobId) }
 }

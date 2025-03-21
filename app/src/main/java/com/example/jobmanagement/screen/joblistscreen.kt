@@ -1,6 +1,7 @@
 package com.example.jobmanagement.screen
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -101,7 +102,8 @@ fun JobListScreen(
                                 coroutineScope.launch {
                                     viewModel.deleteJob(job._id ?: "")
                                 }
-                            }
+                            },
+                            onClick = { navController.navigate("job_details/${job._id}") }
                         )
                     }
                 }
@@ -111,11 +113,11 @@ fun JobListScreen(
 }
 
 @Composable
-fun JobItem(job: Job, onUpdate: () -> Unit, onDelete: () -> Unit) {
+fun JobItem(job: Job, onUpdate: () -> Unit, onDelete: () -> Unit,onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp),
+            .padding(8.dp).clickable(onClick = onClick),
         elevation = CardDefaults.cardElevation(4.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFFD9AAE1))
     ) {
