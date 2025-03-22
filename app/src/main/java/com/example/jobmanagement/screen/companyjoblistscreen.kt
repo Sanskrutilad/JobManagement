@@ -1,6 +1,5 @@
 package com.example.jobmanagement.screen
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -26,7 +25,7 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun JobListScreen(
+fun CompanyJobListScreen(
     viewModel: jobviewmodel = viewModel(),
     navController: NavHostController
 ) {

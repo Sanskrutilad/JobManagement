@@ -15,6 +15,7 @@ class jobviewmodel : ViewModel() {
     val jobs: LiveData<List<Job>> get() = _jobs
     private val _jobById = MutableLiveData<Job?>()
     val jobById: LiveData<Job?> get() = _jobById
+
     init {
         fetchJobs()
     }
@@ -55,6 +56,7 @@ class jobviewmodel : ViewModel() {
             fetchJobs()
         }
     }
+
     fun getJobById(jobId: String) {
         viewModelScope.launch {
             try {
@@ -63,6 +65,29 @@ class jobviewmodel : ViewModel() {
             } catch (e: Exception) {
                 Log.e("jobviewmodel", "Error fetching job by ID: ${e.message}")
                 _jobById.value = null
+            }
+        }
+    }
+
+    fun registerCompany(company: Company, onSuccess: () -> Unit, onError: (String) -> Unit) {
+        viewModelScope.launch {
+            try {
+                repository.registerCompany(company)
+                onSuccess()
+            } catch (e: Exception) {
+                Log.e("JobViewModel", "Error registering company: ${e.message}")
+                onError(e.message ?: "Unknown error")
+            }
+        }
+    }
+    fun registerCandidate(candidate: Candidate, onSuccess: () -> Unit, onError: (String) -> Unit) {
+        viewModelScope.launch {
+            try {
+                repository.registerCandidate(candidate)
+                onSuccess()
+            } catch (e: Exception) {
+                Log.e("JobViewModel", "Error registering candidate: ${e.message}")
+                onError(e.message ?: "Unknown error")
             }
         }
     }

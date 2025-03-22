@@ -15,6 +15,27 @@ data class Job(
     val location: String,
     val salary: Int
 )
+data class Company(
+    val uid: String,                 // Firebase UID for authentication
+    val companyName: String,
+    val industry: String,
+    val location: String,
+    val foundedYear: Int,
+    val email: String,
+    val phone: String,
+    val size: Int,                   // Number of employees
+    val companyType: String,       // Private, Public, etc.
+)
+data class Candidate(
+    val uid: String,
+    val fullName: String,
+    val email: String,
+    val phone: String,
+    val skills: List<String>,
+    val experience: Int,
+    val education: String,
+    val location: String
+)
 
 // Retrofit Instance
 object JobApi {
@@ -48,12 +69,19 @@ interface ApiService {
 
     @DELETE("jobs/{id}")
     suspend fun deleteJob(@Path("id") id: String): Job
+
+    @POST("companies/register")
+    suspend fun registerCompany(@Body company: Company): Company
+
+    @POST("candidates/register")
+    suspend fun registerCandidate(@Body candidate: Candidate)
 }
 
 // Repository to handle API calls
 class JobRepository {
     private val api = JobApi.api
-
+    suspend fun registerCandidate(candidate: Candidate) = withContext(Dispatchers.IO) { api.registerCandidate(candidate) }
+    suspend fun registerCompany(company: Company) = withContext(Dispatchers.IO) { api.registerCompany(company) }
     suspend fun getJobs() = withContext(Dispatchers.IO) { api.getJobs() }
     suspend fun createJob(job: Job) = withContext(Dispatchers.IO) { api.createJob(job) }
     suspend fun updateJob(id: String, job: Job) = withContext(Dispatchers.IO) { api.updateJob(id, job) }

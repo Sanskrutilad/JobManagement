@@ -76,6 +76,64 @@
 //    }
 //});
 //
+//const companySchema = new mongoose.Schema({
+//    uid: { type: String, required: true, unique: true }, // Firebase UID for authentication
+//    companyName: { type: String, required: true },
+//    industry: { type: String, required: true },
+//    location: { type: String, required: true },
+//    foundedYear: { type: Number, required: true },
+//    email: { type: String, required: true, unique: true },
+//    phone: { type: String, required: true },
+//    size: { type: Number, required: true }, // Number of employees
+//    revenue: { type: String }, // Approximate revenue (optional)
+//    companyType: { type: String, required: true }, // Private, Public, etc.
+//    jobsPosted: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Job' }] // List of job IDs posted by the company
+//});
+//
+//const Company = mongoose.model('Company', companySchema);
+//
+//app.post('/api/companies/register', async (req, res) => {
+//    try {
+//        const existingCompany = await Company.findOne({ uid: req.body.uid });
+//        if (existingCompany) {
+//            return res.status(400).json({ error: 'Company with this UID already exists' });
+//        }
+//
+//        const newCompany = new Company(req.body);
+//        await newCompany.save();
+//        res.status(201).json(newCompany);
+//    } catch (err) {
+//        res.status(400).json({ error: err.message });
+//    }
+//});
+//
+//const candidateSchema = new mongoose.Schema({
+//    uid: { type: String, required: true, unique: true }, // Firebase UID for authentication
+//    fullName: { type: String, required: true },
+//    email: { type: String, required: true, unique: true },
+//    phone: { type: String, required: true },
+//    education: { type: String, required: true },
+//    experience: { type: String },
+//    skills: [String], // Array of skills
+//});
+//
+//const Candidate = mongoose.model('Candidate', candidateSchema);
+//
+//app.post('/api/candidates/register', async (req, res) => {
+//    try {
+//        const existingCandidate = await Candidate.findOne({ uid: req.body.uid });
+//        if (existingCandidate) {
+//            return res.status(400).json({ error: 'Candidate with this UID already exists' });
+//        }
+//
+//        const newCandidate = new Candidate(req.body);
+//        await newCandidate.save();
+//        res.status(201).json(newCandidate);
+//    } catch (err) {
+//        res.status(400).json({ error: err.message });
+//    }
+//});
+//
 //
 //// Start the server
 //app.listen(PORT, () => {
