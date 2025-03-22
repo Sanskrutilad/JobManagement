@@ -40,109 +40,112 @@ fun CompanyRegistrationScreen(
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(text = "Register Company", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-
-        OutlinedTextField(value = companyName, onValueChange = { companyName = it }, label = { Text("Company Name") })
-        OutlinedTextField(value = industry, onValueChange = { industry = it }, label = { Text("Industry") })
-        OutlinedTextField(value = location, onValueChange = { location = it }, label = { Text("Location") })
-        OutlinedTextField(
-            value = foundedYear,
-            onValueChange = { foundedYear = it },
-            label = { Text("Founded Year") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-        )
-        OutlinedTextField(value = email, onValueChange = { email = it }, label = { Text("Email") })
-        OutlinedTextField(
-            value = phone,
-            onValueChange = { phone = it },
-            label = { Text("Phone Number") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
-        )
-        OutlinedTextField(
-            value = size,
-            onValueChange = { size = it },
-            label = { Text("Company Size (No. of Employees)") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-        )
-        OutlinedTextField(value = revenue, onValueChange = { revenue = it }, label = { Text("Revenue (Optional)") })
-        OutlinedTextField(value = companyType, onValueChange = { companyType = it }, label = { Text("Company Type") })
-
-        // Password field
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text("Password") },
-            visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
-        )
-
-        errorMessage?.let {
-            Text(text = it, color = MaterialTheme.colorScheme.error)
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Button(
-            onClick = {
-                if (companyName.isBlank() || industry.isBlank() || location.isBlank() || email.isBlank() || phone.isBlank() || companyType.isBlank() || password.isBlank()) {
-                    errorMessage = "All fields must be filled"
-                    return@Button
-                }
-
-                if (password.length < 6) {
-                    errorMessage = "Password must be at least 6 characters"
-                    return@Button
-                }
-
-                isLoading = true
-
-                // Firebase Authentication
-                FirebaseAuth.getInstance().createUserWithEmailAndPassword(email, password)
-                    .addOnCompleteListener { task ->
-                        if (task.isSuccessful) {
-                            val firebaseUser = task.result?.user
-                            val companyUid = firebaseUser?.uid ?: ""
-
-                            val company = Company(
-                                uid = companyUid, // Use Firebase UID
-                                companyName = companyName,
-                                industry = industry,
-                                location = location,
-                                foundedYear = foundedYear.toIntOrNull() ?: 0,
-                                email = email,
-                                phone = phone,
-                                size = size.toIntOrNull() ?: 0,
-                                companyType = companyType
-                            )
-
-                            // Store company details in Firestore or MongoDB
-                            viewModel.registerCompany(company, onSuccess = {
-                                isLoading = false
-                                navController.navigate("companyjob_list") // Navigate to Job List screen
-                            }, onError = { error ->
-                                isLoading = false
-                                errorMessage = error
-                                Log.e("CompanyRegistration", "Error: $error")
-                            })
-                        } else {
-                            isLoading = false
-                            errorMessage = task.exception?.localizedMessage ?: "Registration failed"
-                        }
-                    }
-            },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = !isLoading
+    Scaffold {
+        innerpadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerpadding)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Register")
+            Text(text = "Register Company", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+
+            OutlinedTextField(value = companyName, onValueChange = { companyName = it }, label = { Text("Company Name") })
+            OutlinedTextField(value = industry, onValueChange = { industry = it }, label = { Text("Industry") })
+            OutlinedTextField(value = location, onValueChange = { location = it }, label = { Text("Location") })
+            OutlinedTextField(
+                value = foundedYear,
+                onValueChange = { foundedYear = it },
+                label = { Text("Founded Year") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            )
+            OutlinedTextField(value = email, onValueChange = { email = it }, label = { Text("Email") })
+            OutlinedTextField(
+                value = phone,
+                onValueChange = { phone = it },
+                label = { Text("Phone Number") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
+            )
+            OutlinedTextField(
+                value = size,
+                onValueChange = { size = it },
+                label = { Text("Company Size (No. of Employees)") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            )
+            OutlinedTextField(value = revenue, onValueChange = { revenue = it }, label = { Text("Revenue (Optional)") })
+            OutlinedTextField(value = companyType, onValueChange = { companyType = it }, label = { Text("Company Type") })
+
+            // Password field
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                label = { Text("Password") },
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+            )
+
+            errorMessage?.let {
+                Text(text = it, color = MaterialTheme.colorScheme.error)
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(
+                onClick = {
+                    if (companyName.isBlank() || industry.isBlank() || location.isBlank() || email.isBlank() || phone.isBlank() || companyType.isBlank() || password.isBlank()) {
+                        errorMessage = "All fields must be filled"
+                        return@Button
+                    }
+
+                    if (password.length < 6) {
+                        errorMessage = "Password must be at least 6 characters"
+                        return@Button
+                    }
+
+                    isLoading = true
+
+                    // Firebase Authentication
+                    FirebaseAuth.getInstance().createUserWithEmailAndPassword(email, password)
+                        .addOnCompleteListener { task ->
+                            if (task.isSuccessful) {
+                                val firebaseUser = task.result?.user
+                                val companyUid = firebaseUser?.uid ?: ""
+
+                                val company = Company(
+                                    uid = companyUid, // Use Firebase UID
+                                    companyName = companyName,
+                                    industry = industry,
+                                    location = location,
+                                    foundedYear = foundedYear.toIntOrNull() ?: 0,
+                                    email = email,
+                                    phone = phone,
+                                    size = size.toIntOrNull() ?: 0,
+                                    companyType = companyType
+                                )
+
+                                // Store company details in Firestore or MongoDB
+                                viewModel.registerCompany(company, onSuccess = {
+                                    isLoading = false
+                                    navController.navigate("companyjob_list") // Navigate to Job List screen
+                                }, onError = { error ->
+                                    isLoading = false
+                                    errorMessage = error
+                                    Log.e("CompanyRegistration", "Error: $error")
+                                })
+                            } else {
+                                isLoading = false
+                                errorMessage = task.exception?.localizedMessage ?: "Registration failed"
+                            }
+                        }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !isLoading
+            ) {
+                Text("Register")
+            }
         }
     }
+
 }

@@ -36,94 +36,99 @@ fun CandidateRegistrationScreen(
 
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(text = "Register as Candidate", style = MaterialTheme.typography.headlineMedium,fontWeight = FontWeight.Bold)
 
-        OutlinedTextField(value = fullName, onValueChange = { fullName = it }, label = { Text("Full Name") })
-        OutlinedTextField(value = email, onValueChange = { email = it }, label = { Text("Email") })
-        OutlinedTextField(
-            value = phone,
-            onValueChange = { phone = it },
-            label = { Text("Phone Number") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
-        )
-        OutlinedTextField(value = skills, onValueChange = { skills = it }, label = { Text("Skills (comma-separated)") })
-        OutlinedTextField(
-            value = experience,
-            onValueChange = { experience = it },
-            label = { Text("Years of Experience") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-        )
-        OutlinedTextField(value = education, onValueChange = { education = it }, label = { Text("Education") })
-        OutlinedTextField(value = location, onValueChange = { location = it }, label = { Text("Location") })
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text("Password") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
-        )
-
-        errorMessage?.let {
-            Text(text = it, color = MaterialTheme.colorScheme.error)
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Button(
-            onClick = {
-                if (fullName.isBlank() || email.isBlank() || phone.isBlank() || skills.isBlank() || education.isBlank() || location.isBlank() || password.isBlank()) {
-                    errorMessage = "All fields must be filled"
-                    return@Button
-                }
-
-                isLoading = true
-
-                // 🔹 Register user with Firebase Authentication
-                val auth = FirebaseAuth.getInstance()
-                auth.createUserWithEmailAndPassword(email, password)
-                    .addOnCompleteListener { task ->
-                        if (task.isSuccessful) {
-                            val firebaseUser = auth.currentUser
-                            val candidateUid = firebaseUser?.uid ?: ""
-
-                            // Create candidate object
-                            val candidate = Candidate(
-                                uid = candidateUid,
-                                fullName = fullName,
-                                email = email,
-                                phone = phone,
-                                skills = skills.split(",").map { it.trim() },
-                                experience = experience.toIntOrNull() ?: 0,
-                                education = education,
-                                location = location
-                            )
-
-                            // Store candidate details in Firestore or MongoDB
-                            viewModel.registerCandidate(candidate, onSuccess = {
-                                isLoading = false
-                                navController.navigate("candidatejob_list") // Navigate to Job List screen
-                            }, onError = { error ->
-                                isLoading = false
-                                errorMessage = error
-                                Log.e("CandidateRegistration", "Error: $error")
-                            })
-                        } else {
-                            isLoading = false
-                            errorMessage = task.exception?.message ?: "Registration failed"
-                            Log.e("FirebaseAuth", "Error: ${task.exception?.message}")
-                        }
-                    }
-            },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = !isLoading
+    Scaffold {
+        innerpadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerpadding)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Register")
+            Text(text = "Register as Candidate", style = MaterialTheme.typography.headlineMedium,fontWeight = FontWeight.Bold)
+
+            OutlinedTextField(value = fullName, onValueChange = { fullName = it }, label = { Text("Full Name") })
+            OutlinedTextField(value = email, onValueChange = { email = it }, label = { Text("Email") })
+            OutlinedTextField(
+                value = phone,
+                onValueChange = { phone = it },
+                label = { Text("Phone Number") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
+            )
+            OutlinedTextField(value = skills, onValueChange = { skills = it }, label = { Text("Skills (comma-separated)") })
+            OutlinedTextField(
+                value = experience,
+                onValueChange = { experience = it },
+                label = { Text("Years of Experience") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            )
+            OutlinedTextField(value = education, onValueChange = { education = it }, label = { Text("Education") })
+            OutlinedTextField(value = location, onValueChange = { location = it }, label = { Text("Location") })
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                label = { Text("Password") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+            )
+
+            errorMessage?.let {
+                Text(text = it, color = MaterialTheme.colorScheme.error)
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(
+                onClick = {
+                    if (fullName.isBlank() || email.isBlank() || phone.isBlank() || skills.isBlank() || education.isBlank() || location.isBlank() || password.isBlank()) {
+                        errorMessage = "All fields must be filled"
+                        return@Button
+                    }
+
+                    isLoading = true
+
+                    // 🔹 Register user with Firebase Authentication
+                    val auth = FirebaseAuth.getInstance()
+                    auth.createUserWithEmailAndPassword(email, password)
+                        .addOnCompleteListener { task ->
+                            if (task.isSuccessful) {
+                                val firebaseUser = auth.currentUser
+                                val candidateUid = firebaseUser?.uid ?: ""
+
+                                // Create candidate object
+                                val candidate = Candidate(
+                                    uid = candidateUid,
+                                    fullName = fullName,
+                                    email = email,
+                                    phone = phone,
+                                    skills = skills.split(",").map { it.trim() },
+                                    experience = experience.toIntOrNull() ?: 0,
+                                    education = education,
+                                    location = location
+                                )
+
+                                // Store candidate details in Firestore or MongoDB
+                                viewModel.registerCandidate(candidate, onSuccess = {
+                                    isLoading = false
+                                    navController.navigate("candidatejob_list") // Navigate to Job List screen
+                                }, onError = { error ->
+                                    isLoading = false
+                                    errorMessage = error
+                                    Log.e("CandidateRegistration", "Error: $error")
+                                })
+                            } else {
+                                isLoading = false
+                                errorMessage = task.exception?.message ?: "Registration failed"
+                                Log.e("FirebaseAuth", "Error: ${task.exception?.message}")
+                            }
+                        }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !isLoading
+            ) {
+                Text("Register")
+            }
         }
     }
+
 }

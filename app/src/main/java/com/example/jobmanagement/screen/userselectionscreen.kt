@@ -11,29 +11,33 @@ import androidx.navigation.NavController
 
 @Composable
 fun UserSelectionScreen(navController: NavController) {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(text = "Select Registration Type", style = MaterialTheme.typography.headlineMedium)
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        Button(
-            onClick = { navController.navigate("login/candidate")},
-            shape = RoundedCornerShape(12.dp),
-            modifier = Modifier.fillMaxWidth(0.8f).padding(8.dp)
+    Scaffold {
+        innerpadding ->
+        Column(
+            modifier = Modifier.fillMaxSize().padding(innerpadding),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(text = "Candidate")
-        }
+            Text(text = "Select Registration Type", style = MaterialTheme.typography.headlineMedium)
 
-        Button(
-            onClick = { navController.navigate("login/company") },
-            shape = RoundedCornerShape(12.dp),
-            modifier = Modifier.fillMaxWidth(0.8f).padding(8.dp)
-        ) {
-            Text(text = "Company")
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Button(
+                onClick = { navController.navigate("login/candidate")},
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth(0.8f).padding(8.dp)
+            ) {
+                Text(text = "Candidate")
+            }
+
+            Button(
+                onClick = { navController.navigate("login/company") },
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth(0.8f).padding(8.dp)
+            ) {
+                Text(text = "Company")
+            }
         }
     }
-}
+    }
+
