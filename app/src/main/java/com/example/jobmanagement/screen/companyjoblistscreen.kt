@@ -21,6 +21,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.jobmanagement.Job
 import com.example.jobmanagement.jobviewmodel
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -35,21 +36,27 @@ fun CompanyJobListScreen(
     // Search state
     var searchQuery by remember { mutableStateOf(TextFieldValue("")) }
 
+    // Retrieve the logged-in company's ID (Replace with actual retrieval method)
+    val currentCompanyId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+
+
     LaunchedEffect(Unit) {
         viewModel.fetchJobs()
     }
 
-    // Filtering jobs based on search query
+    // Filtering jobs based on search query & logged-in company ID
     val filteredJobs = jobs.value.filter {
+        it.companyId == currentCompanyId && (
                 it.title.contains(searchQuery.text, ignoreCase = true) ||
-                it.company.contains(searchQuery.text, ignoreCase = true) ||
-                it.location.contains(searchQuery.text, ignoreCase = true)
+                        it.company.contains(searchQuery.text, ignoreCase = true) ||
+                        it.location.contains(searchQuery.text, ignoreCase = true)
+                )
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Job List", color = Color.White) },
+                title = { Text("My Job Listings", color = Color.White) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFFE1BEE7))
             )
         },
@@ -67,7 +74,7 @@ fun CompanyJobListScreen(
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                label = { Text("Search by Title, Company, or Location") },
+                label = { Text("Search by Title, Location") },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp)
@@ -75,13 +82,12 @@ fun CompanyJobListScreen(
 
             if (filteredJobs.isEmpty()) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize(),
+                    modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = if (jobs.value.isEmpty()) {
-                            "No jobs available.Add a new job!"
+                            "You haven't posted any jobs yet. Add a new job!"
                         } else {
                             "No matching jobs found. Try a different search!"
                         },
@@ -110,6 +116,7 @@ fun CompanyJobListScreen(
         }
     }
 }
+
 
 @Composable
 fun JobItem(job: Job, onUpdate: () -> Unit, onDelete: () -> Unit,onClick: () -> Unit) {

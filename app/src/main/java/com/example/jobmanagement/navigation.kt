@@ -27,9 +27,10 @@ fun JobNavGraph(navController: NavHostController, viewModel: jobviewmodel) {
             val jobId = backStackEntry.arguments?.getString("jobId")
             AddEditJobScreen(navController, viewModel, jobId)
         }
-        composable("job_details/{jobId}") { backStackEntry ->
+        composable("jobDetails/{jobId}/{employerId}") { backStackEntry ->
             val jobId = backStackEntry.arguments?.getString("jobId") ?: ""
-            JobDetailsScreen(jobId = jobId, viewModel = viewModel)
+            val employerId = backStackEntry.arguments?.getString("employerId") ?: ""
+            JobDetailsScreen(jobId, employerId)
         }
         composable("user_selection") {
             UserSelectionScreen(navController)

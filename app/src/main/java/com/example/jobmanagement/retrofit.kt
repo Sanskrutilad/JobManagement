@@ -1,5 +1,6 @@
 package com.example.jobmanagement
 
+import com.google.gson.annotations.SerializedName
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.*
@@ -12,10 +13,13 @@ data class Job(
     val title: String,
     val description: String,
     val company: String,
+    val companyId: String,  // New field to link job to employer
     val location: String,
     val salary: Int
 )
+
 data class Company(
+    @SerializedName("_id") val companyId: String? = null,
     val uid: String,                 // Firebase UID for authentication
     val companyName: String,
     val industry: String,
@@ -35,6 +39,9 @@ data class Candidate(
     val experience: Int,
     val education: String,
     val location: String
+)
+data class CompanyNameResponse(
+    val companyName: String
 )
 
 // Retrofit Instance
@@ -56,7 +63,7 @@ object JobApi {
 // Retrofit API Interface
 interface ApiService {
     @GET("jobs")
-    suspend fun getJobs(): List<Job>
+    suspend fun getJobs(@Query("companyId") companyId: String? = null): List<Job>
 
     @POST("jobs")
     suspend fun createJob(@Body job: Job): Job
@@ -75,6 +82,9 @@ interface ApiService {
 
     @POST("candidates/register")
     suspend fun registerCandidate(@Body candidate: Candidate)
+
+    @GET("companyName/{companyId}")
+    suspend fun getCompanyName(@Path("companyId") companyId: String): CompanyNameResponse
 }
 
 // Repository to handle API calls
@@ -82,9 +92,10 @@ class JobRepository {
     private val api = JobApi.api
     suspend fun registerCandidate(candidate: Candidate) = withContext(Dispatchers.IO) { api.registerCandidate(candidate) }
     suspend fun registerCompany(company: Company) = withContext(Dispatchers.IO) { api.registerCompany(company) }
-    suspend fun getJobs() = withContext(Dispatchers.IO) { api.getJobs() }
+    suspend fun getJobs(companyId: String? = null) = withContext(Dispatchers.IO) {api.getJobs(companyId) }
     suspend fun createJob(job: Job) = withContext(Dispatchers.IO) { api.createJob(job) }
     suspend fun updateJob(id: String, job: Job) = withContext(Dispatchers.IO) { api.updateJob(id, job) }
     suspend fun deleteJob(id: String) = withContext(Dispatchers.IO) { api.deleteJob(id) }
     suspend fun getJobById(jobId: String) = withContext(Dispatchers.IO) { api.getJobById(jobId) }
+    suspend fun getCompanyName(companyId: String): String = withContext(Dispatchers.IO) { api.getCompanyName(companyId).companyName }
 }

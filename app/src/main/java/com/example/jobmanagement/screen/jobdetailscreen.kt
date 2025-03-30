@@ -19,14 +19,19 @@ import com.example.jobmanagement.jobviewmodel
 @Composable
 fun JobDetailsScreen(
     jobId: String,
+    employerId: String,
     viewModel: jobviewmodel = viewModel()
 ) {
     // Observe the jobById LiveData
     val job = viewModel.jobById.observeAsState()
+    val companyName = viewModel.companyName.observeAsState()
 
     // Fetch job details once when the screen is loaded
     LaunchedEffect(jobId) {
         viewModel.getJobById(jobId)
+    }
+    LaunchedEffect(employerId) {
+        viewModel.getCompanyName(employerId)
     }
 
     Scaffold(
@@ -63,7 +68,7 @@ fun JobDetailsScreen(
                             color = Color(0xFF73317E)
                         )
                         Text(
-                            text = "Company: ${jobData.company}",
+                            text = "Company:  ${companyName.value ?: "Loading..."}",
                             fontSize = 16.sp,
                             color = Color.White
                         )

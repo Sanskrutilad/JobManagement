@@ -15,6 +15,8 @@ class jobviewmodel : ViewModel() {
     val jobs: LiveData<List<Job>> get() = _jobs
     private val _jobById = MutableLiveData<Job?>()
     val jobById: LiveData<Job?> get() = _jobById
+    private val _companyName = MutableLiveData<String>()
+    val companyName: LiveData<String> get() = _companyName
 
     init {
         fetchJobs()
@@ -91,4 +93,13 @@ class jobviewmodel : ViewModel() {
             }
         }
     }
+    suspend fun getCompanyName(companyId: String): String? {
+        return try {
+            repository.getCompanyName(companyId)
+        } catch (e: Exception) {
+            Log.e("JobViewModel", "Error fetching company name: ${e.message}")
+            null  // Return null if there's an error
+        }
+    }
+
 }

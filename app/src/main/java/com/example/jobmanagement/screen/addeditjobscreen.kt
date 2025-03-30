@@ -13,28 +13,42 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.jobmanagement.Job
 import com.example.jobmanagement.jobviewmodel
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddEditJobScreen(navController: NavController, viewModel: jobviewmodel, jobId: String? = null) {
+    val coroutineScope = rememberCoroutineScope()
+
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
-    var company by remember { mutableStateOf("") }
+    var companyId by remember { mutableStateOf(FirebaseAuth.getInstance().currentUser?.uid ?: "") }
+    var companyName by remember { mutableStateOf("") }
     var location by remember { mutableStateOf("") }
     var salary by remember { mutableStateOf("") }
+    var salaryError by remember { mutableStateOf(false) }  // Error state for salary
 
+    // Fetch job details if editing
     LaunchedEffect(jobId) {
         if (jobId != null) {
             val job = viewModel.jobs.value?.find { it._id == jobId }
             job?.let {
                 title = it.title
                 description = it.description
-                company = it.company
+                companyId = it.companyId
                 location = it.location
                 salary = it.salary.toString()
+
+                // Fetch company name asynchronously
+                companyName = (viewModel.getCompanyName(it.companyId) ?: "Unknown Company")
             }
+        } else {
+            // Auto-fill company name when adding a new job
+            companyName = (viewModel.getCompanyName(companyId) ?: "Unknown Company")
         }
     }
+
 
     Scaffold(
         topBar = {
@@ -73,11 +87,13 @@ fun AddEditJobScreen(navController: NavController, viewModel: jobviewmodel, jobI
                 modifier = Modifier.fillMaxWidth()
             )
 
+            // Auto-filled company field (Not editable)
             OutlinedTextField(
-                value = company,
-                onValueChange = { company = it },
+                value = companyName,
+                onValueChange = {},
                 label = { Text("Company Name") },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                enabled = false  // Make it non-editable
             )
 
             OutlinedTextField(
@@ -89,45 +105,46 @@ fun AddEditJobScreen(navController: NavController, viewModel: jobviewmodel, jobI
 
             OutlinedTextField(
                 value = salary,
-                onValueChange = { salary = it },
+                onValueChange = {
+                    salary = it
+                    salaryError = it.toIntOrNull() == null || it.toInt() < 0
+                },
                 label = { Text("Salary") },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                isError = salaryError
             )
+            if (salaryError) {
+                Text(text = "Invalid salary input", color = Color.Red, fontSize = 12.sp)
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             Button(
                 onClick = {
-                    if (jobId != null) {
-                        viewModel.updateJob(
-                            jobId,
-                            Job(
-                                _id = jobId,
-                                title = title,
-                                description = description,
-                                company = company,
-                                location = location,
-                                salary = salary.toIntOrNull() ?: 0
-                            )
+                    if (!salaryError) {
+                        val job = Job(
+                            _id = jobId ?: "",  // Ensure non-null ID
+                            title = title,
+                            description = description,
+                            company = companyName,
+                            companyId = companyId,
+                            location = location,
+                            salary = salary.toIntOrNull() ?: 0 // Handle conversion safely
                         )
-                    } else {
-                        viewModel.addJob(
-                            Job(
-                                title = title,
-                                description = description,
-                                company = company,
-                                location = location,
-                                salary = salary.toIntOrNull() ?: 0
-                            )
-                        )
+                        if (jobId != null) {
+                            viewModel.updateJob(jobId, job)
+                        } else {
+                            viewModel.addJob(job)
+                        }
+                        navController.popBackStack()
                     }
-                    navController.popBackStack()
                 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE1BEE7)),
-                shape = RoundedCornerShape(8.dp)
+                shape = RoundedCornerShape(8.dp),
+                enabled = !salaryError  // Disable button if salary input is incorrect
             ) {
                 Text(
                     text = if (jobId != null) "Update Job" else "Save Job",
