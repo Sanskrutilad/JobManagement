@@ -1,9 +1,11 @@
 package com.example.jobmanagement.screen
 
+import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -11,44 +13,71 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.jobmanagement.ApiService
 import com.example.jobmanagement.Job
 import com.example.jobmanagement.jobviewmodel
-import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddEditJobScreen(navController: NavController, viewModel: jobviewmodel, jobId: String? = null) {
+fun AddEditJobScreen(
+    navController: NavController,
+    apiService: ApiService,
+    jobId: String? = null,
+    companyId: String?
+) {
     val coroutineScope = rememberCoroutineScope()
-
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
-    var companyId by remember { mutableStateOf(FirebaseAuth.getInstance().currentUser?.uid ?: "") }
+    var companyIdState by remember { mutableStateOf(companyId ?: "") }
     var companyName by remember { mutableStateOf("") }
     var location by remember { mutableStateOf("") }
     var salary by remember { mutableStateOf("") }
-    var salaryError by remember { mutableStateOf(false) }  // Error state for salary
+    var salaryError by remember { mutableStateOf(false) }
 
-    // Fetch job details if editing
-    LaunchedEffect(jobId) {
-        if (jobId != null) {
-            val job = viewModel.jobs.value?.find { it._id == jobId }
-            job?.let {
-                title = it.title
-                description = it.description
-                companyId = it.companyId
-                location = it.location
-                salary = it.salary.toString()
+    Log.d("AddEditJobScreen", "Initialized with jobId: $jobId, companyId: $companyIdState")
 
-                // Fetch company name asynchronously
-                companyName = (viewModel.getCompanyName(it.companyId) ?: "Unknown Company")
+    // Fetch company name if companyIdState is not empty
+    LaunchedEffect(companyIdState) {
+        if (companyIdState.isNotEmpty()) {
+            try {
+                Log.d("AddEditJobScreen", "Fetching company name for companyId: $companyIdState")
+                val companyResponse = apiService.getCompanyName(companyIdState)
+                companyName = companyResponse.companyName
+                Log.d("AddEditJobScreen", "Fetched company name: $companyName")
+            } catch (e: Exception) {
+                Log.e("AddEditJobScreen", "Error fetching company name: ${e.message}")
             }
-        } else {
-            // Auto-fill company name when adding a new job
-            companyName = (viewModel.getCompanyName(companyId) ?: "Unknown Company")
         }
     }
 
+    // Fetch job details if jobId is provided (Edit Mode)
+    LaunchedEffect(jobId) {
+        if (jobId != null) {
+            try {
+                Log.d("AddEditJobScreen", "Fetching job details for jobId: $jobId")
+                val job = apiService.getJobById(jobId)
+                job?.let {
+                    title = it.title
+                    description = it.description
+                    companyIdState = it.companyId
+                    location = it.location
+                    salary = it.salary.toString()
+
+                    Log.d("AddEditJobScreen", "Job details loaded: $it")
+
+                    // Fetch company name again for the job
+                    val companyResponse = apiService.getCompanyName(it.companyId)
+                    companyName = companyResponse.companyName
+                    Log.d("AddEditJobScreen", "Company Name for job: $companyName")
+                }
+            } catch (e: Exception) {
+                Log.e("AddEditJobScreen", "Error fetching job details: ${e.message}")
+            }
+        } else {
+            Log.d("AddEditJobScreen", "jobId is null, skipping job details fetch.")
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -93,7 +122,7 @@ fun AddEditJobScreen(navController: NavController, viewModel: jobviewmodel, jobI
                 onValueChange = {},
                 label = { Text("Company Name") },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = false  // Make it non-editable
+                enabled = false
             )
 
             OutlinedTextField(
@@ -107,7 +136,7 @@ fun AddEditJobScreen(navController: NavController, viewModel: jobviewmodel, jobI
                 value = salary,
                 onValueChange = {
                     salary = it
-                    salaryError = it.toIntOrNull() == null || it.toInt() < 0
+                    salaryError = it.isNotEmpty() && (it.toIntOrNull() == null || it.toInt() < 0)
                 },
                 label = { Text("Salary") },
                 modifier = Modifier.fillMaxWidth(),
@@ -123,20 +152,30 @@ fun AddEditJobScreen(navController: NavController, viewModel: jobviewmodel, jobI
                 onClick = {
                     if (!salaryError) {
                         val job = Job(
-                            _id = jobId ?: "",  // Ensure non-null ID
+                            _id = jobId ?: "",
                             title = title,
                             description = description,
                             company = companyName,
-                            companyId = companyId,
+                            companyId = companyIdState,
                             location = location,
-                            salary = salary.toIntOrNull() ?: 0 // Handle conversion safely
+                            salary = salary.toIntOrNull() ?: 0
                         )
-                        if (jobId != null) {
-                            viewModel.updateJob(jobId, job)
-                        } else {
-                            viewModel.addJob(job)
+
+                        coroutineScope.launch {
+                            try {
+                                Log.d("AddEditJobScreen", "Saving job: $job")
+                                if (jobId != null) {
+                                    apiService.updateJob(jobId, job)
+                                    Log.d("AddEditJobScreen", "Job updated successfully.")
+                                } else {
+                                    apiService.createJob(job)
+                                    Log.d("AddEditJobScreen", "Job created successfully.")
+                                }
+                                navController.popBackStack()
+                            } catch (e: Exception) {
+                                Log.e("AddEditJobScreen", "Error saving job: ${e.message}")
+                            }
                         }
-                        navController.popBackStack()
                     }
                 },
                 modifier = Modifier
@@ -144,7 +183,7 @@ fun AddEditJobScreen(navController: NavController, viewModel: jobviewmodel, jobI
                     .height(50.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE1BEE7)),
                 shape = RoundedCornerShape(8.dp),
-                enabled = !salaryError  // Disable button if salary input is incorrect
+                enabled = !salaryError
             ) {
                 Text(
                     text = if (jobId != null) "Update Job" else "Save Job",

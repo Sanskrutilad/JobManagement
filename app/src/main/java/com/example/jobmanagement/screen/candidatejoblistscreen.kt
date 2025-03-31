@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
@@ -45,7 +46,16 @@ fun CandidateJobListScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Available Jobs", color = Color.White) },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFFE1BEE7))
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFFE1BEE7)),
+                actions = {
+                    IconButton(onClick = { navController.navigate("candidateprofile") }) {
+                        Icon(
+                            imageVector = Icons.Filled.Person,
+                            contentDescription = "Profile",
+                            tint = Color.White
+                        )
+                    }
+                }
             )
         }
     ) { innerPadding ->
@@ -83,6 +93,7 @@ fun CandidateJobListScreen(
         }
     }
 }
+
 
 @Composable
 fun CandidateJobItem(job: Job) {

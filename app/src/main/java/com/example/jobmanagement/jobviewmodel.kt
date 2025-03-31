@@ -17,7 +17,10 @@ class jobviewmodel : ViewModel() {
     val jobById: LiveData<Job?> get() = _jobById
     private val _companyName = MutableLiveData<String>()
     val companyName: LiveData<String> get() = _companyName
-
+    private val _candidate = MutableLiveData<Candidate?>()
+    val candidate: LiveData<Candidate?> get() = _candidate
+    private val _company = MutableLiveData<Company?>()
+    val company: LiveData<Company?> get() = _company
     init {
         fetchJobs()
     }
@@ -70,6 +73,16 @@ class jobviewmodel : ViewModel() {
             }
         }
     }
+    fun fetchCompanyName(companyId: String) {
+        viewModelScope.launch {
+            try {
+                _companyName.value = repository.getCompanyName(companyId)
+            } catch (e: Exception) {
+                Log.e("JobViewModel", "Error fetching company name: ${e.message}")
+                _companyName.value = "Unknown Company"
+            }
+        }
+    }
 
     fun registerCompany(company: Company, onSuccess: () -> Unit, onError: (String) -> Unit) {
         viewModelScope.launch {
@@ -101,5 +114,35 @@ class jobviewmodel : ViewModel() {
             null  // Return null if there's an error
         }
     }
+    fun getCandidateByUid(uid: String) {
+        viewModelScope.launch {
+            try {
+                val candidateData = repository.getCandidateByUid(uid)
+                if (candidateData != null) {
+                    _candidate.postValue(candidateData) // Ensure LiveData is updated
+                } else {
+                    Log.e("JobViewModel", "Candidate not found")
+                    _candidate.postValue(null)
+                }
+            } catch (e: Exception) {
+                Log.e("JobViewModel", "Error fetching candidate: ${e.message}")
+                _candidate.postValue(null)
+            }
+        }
+    }
+
+
+    fun getCompanyByUid(uid: String) {
+        viewModelScope.launch {
+            try {
+                _company.value = repository.getCompanyByUid(uid)
+            } catch (e: Exception) {
+                Log.e("JobViewModel", "Error fetching company: ${e.message}")
+                _company.value = null
+            }
+        }
+    }
+
+
 
 }

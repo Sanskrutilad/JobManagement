@@ -1,10 +1,12 @@
 package com.example.jobmanagement.screen
 
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,12 +25,12 @@ import com.example.jobmanagement.Job
 import com.example.jobmanagement.jobviewmodel
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CompanyJobListScreen(
     viewModel: jobviewmodel = viewModel(),
-    navController: NavHostController
+    navController: NavHostController,
+    companyId: String?
 ) {
     val jobs = viewModel.jobs.observeAsState(emptyList())
     val coroutineScope = rememberCoroutineScope()
@@ -36,17 +38,14 @@ fun CompanyJobListScreen(
     // Search state
     var searchQuery by remember { mutableStateOf(TextFieldValue("")) }
 
-    // Retrieve the logged-in company's ID (Replace with actual retrieval method)
-    val currentCompanyId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
-
-
     LaunchedEffect(Unit) {
+        Log.d("CompanyJobListScreen", "Company ID: $companyId")
         viewModel.fetchJobs()
     }
 
-    // Filtering jobs based on search query & logged-in company ID
+    // Filtering jobs based on search query & provided company ID
     val filteredJobs = jobs.value.filter {
-        it.companyId == currentCompanyId && (
+        it.companyId == companyId && (
                 it.title.contains(searchQuery.text, ignoreCase = true) ||
                         it.company.contains(searchQuery.text, ignoreCase = true) ||
                         it.location.contains(searchQuery.text, ignoreCase = true)
@@ -57,12 +56,26 @@ fun CompanyJobListScreen(
         topBar = {
             TopAppBar(
                 title = { Text("My Job Listings", color = Color.White) },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFFE1BEE7))
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFFE1BEE7)),
+                actions = {
+                    IconButton(onClick = {
+                        navController.navigate("companyprofile")
+                    }) {
+                        Icon(
+                            imageVector = Icons.Default.AccountCircle,
+                            contentDescription = "Profile",
+                            tint = Color.White
+                        )
+                    }
+                }
             )
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { navController.navigate("add_edit_job") },
+                onClick = {
+                    // Navigate to add job screen (pass companyId directly)
+                    navController.navigate("add_job/$companyId")
+                },
                 containerColor = Color(0xFFE1BEE7)
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Job", tint = Color.White)
@@ -102,13 +115,18 @@ fun CompanyJobListScreen(
                     items(filteredJobs) { job ->
                         JobItem(
                             job = job,
-                            onUpdate = { navController.navigate("add_edit_job/${job._id}") },
+                            onUpdate = {
+                                // Navigate to edit job screen with jobId and companyId
+                                navController.navigate("add_edit_job/${job._id}/${companyId}")
+                            },
                             onDelete = {
                                 coroutineScope.launch {
                                     viewModel.deleteJob(job._id ?: "")
                                 }
                             },
-                            onClick = { navController.navigate("job_details/${job._id}") }
+                            onClick = {
+                                navController.navigate("job_details/${job._id}/${companyId}")
+                            }
                         )
                     }
                 }
@@ -116,6 +134,7 @@ fun CompanyJobListScreen(
         }
     }
 }
+
 
 
 @Composable

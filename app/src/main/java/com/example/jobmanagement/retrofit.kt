@@ -46,7 +46,7 @@ data class CompanyNameResponse(
 
 // Retrofit Instance
 object JobApi {
-    private const val BASE_URL = "http://192.168.71.52:5000/api/"
+    private const val BASE_URL = "http://10.0.2.2:3000/api/"
 
     private val retrofit: Retrofit by lazy {
         Retrofit.Builder()
@@ -59,6 +59,15 @@ object JobApi {
         retrofit.create(ApiService::class.java)
     }
 }
+
+fun createApiService(): ApiService {
+    val retrofit = Retrofit.Builder()
+        .baseUrl("http://192.168.71.52:5000/api/") // Updated URL
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
+    return retrofit.create(ApiService::class.java)
+}
+
 
 // Retrofit API Interface
 interface ApiService {
@@ -85,11 +94,17 @@ interface ApiService {
 
     @GET("companyName/{companyId}")
     suspend fun getCompanyName(@Path("companyId") companyId: String): CompanyNameResponse
+
+    @GET("candidates/{uid}")
+    suspend fun getCandidateByUid(@Path("uid") uid: String): Candidate
+
+    @GET("companies/{uid}")
+    suspend fun getCompanyByUid(@Path("uid") uid: String): Company
 }
 
 // Repository to handle API calls
 class JobRepository {
-    private val api = JobApi.api
+    private val api = createApiService()
     suspend fun registerCandidate(candidate: Candidate) = withContext(Dispatchers.IO) { api.registerCandidate(candidate) }
     suspend fun registerCompany(company: Company) = withContext(Dispatchers.IO) { api.registerCompany(company) }
     suspend fun getJobs(companyId: String? = null) = withContext(Dispatchers.IO) {api.getJobs(companyId) }
@@ -98,4 +113,6 @@ class JobRepository {
     suspend fun deleteJob(id: String) = withContext(Dispatchers.IO) { api.deleteJob(id) }
     suspend fun getJobById(jobId: String) = withContext(Dispatchers.IO) { api.getJobById(jobId) }
     suspend fun getCompanyName(companyId: String): String = withContext(Dispatchers.IO) { api.getCompanyName(companyId).companyName }
+    suspend fun getCandidateByUid(uid: String) = withContext(Dispatchers.IO) { api.getCandidateByUid(uid) }
+    suspend fun getCompanyByUid(uid: String) = withContext(Dispatchers.IO) { api.getCompanyByUid(uid) }
 }

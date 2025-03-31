@@ -41,7 +41,7 @@ fun CompanyRegistrationScreen(
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     Scaffold {
-        innerpadding ->
+            innerpadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -124,11 +124,10 @@ fun CompanyRegistrationScreen(
                                     size = size.toIntOrNull() ?: 0,
                                     companyType = companyType
                                 )
-
                                 // Store company details in Firestore or MongoDB
                                 viewModel.registerCompany(company, onSuccess = {
                                     isLoading = false
-                                    navController.navigate("companyjob_list") // Navigate to Job List screen
+                                    navController.navigate("companyjob_list/${companyUid}")
                                 }, onError = { error ->
                                     isLoading = false
                                     errorMessage = error

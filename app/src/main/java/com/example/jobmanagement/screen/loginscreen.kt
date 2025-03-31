@@ -26,7 +26,7 @@ fun LoginScreen(navController: NavController, userType: String) {
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     Scaffold{
-        innerpadding ->
+            innerpadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -46,9 +46,7 @@ fun LoginScreen(navController: NavController, userType: String) {
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
             )
-
             Spacer(modifier = Modifier.height(8.dp))
-
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
@@ -58,14 +56,11 @@ fun LoginScreen(navController: NavController, userType: String) {
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
             )
-
             Spacer(modifier = Modifier.height(16.dp))
-
             errorMessage?.let {
                 Text(text = it, color = MaterialTheme.colorScheme.error, fontSize = 14.sp)
                 Spacer(modifier = Modifier.height(8.dp))
             }
-
             Button(
                 onClick = {
                     isLoading = true
@@ -73,7 +68,14 @@ fun LoginScreen(navController: NavController, userType: String) {
                         .addOnCompleteListener { task ->
                             isLoading = false
                             if (task.isSuccessful) {
-                                val nextScreen = if (userType == "candidate") "candidatejob_list" else "companyjob_list"
+                                val firebaseUser = FirebaseAuth.getInstance().currentUser
+                                val companyUid = firebaseUser?.uid ?: ""
+
+                                val nextScreen = if (userType == "candidate") {
+                                    "candidatejob_list"
+                                } else {
+                                    "companyjob_list/${companyUid}" // Pass UID for company
+                                }
                                 navController.navigate(nextScreen)
                             } else {
                                 errorMessage = task.exception?.localizedMessage ?: "Login failed"
@@ -86,6 +88,7 @@ fun LoginScreen(navController: NavController, userType: String) {
             ) {
                 Text(if (isLoading) "Logging in..." else "Login")
             }
+
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -100,5 +103,5 @@ fun LoginScreen(navController: NavController, userType: String) {
         }
     }
 
-    }
+}
 

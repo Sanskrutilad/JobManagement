@@ -9,13 +9,13 @@ import com.example.jobmanagement.ui.theme.JobManagementTheme
 
 class MainActivity : ComponentActivity() {
     private val viewModel: jobviewmodel by viewModels()
-
+    val apiService = createApiService()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             JobManagementTheme {
                 val navController = rememberNavController()
-                JobNavGraph(navController, viewModel)
+                JobNavGraph(navController, viewModel,apiService)
             }
         }
     }
