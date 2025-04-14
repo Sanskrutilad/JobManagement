@@ -22,11 +22,13 @@ import kotlinx.coroutines.launch
 @Composable
 fun AddEditJobScreen(
     navController: NavController,
-    apiService: ApiService,
+    viewModel: jobviewmodel,
     jobId: String? = null,
     companyId: String?
 ) {
     val coroutineScope = rememberCoroutineScope()
+    val job by viewModel.jobById.observeAsState()
+
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var companyIdState by remember { mutableStateOf(companyId ?: "") }
@@ -35,47 +37,35 @@ fun AddEditJobScreen(
     var salary by remember { mutableStateOf("") }
     var salaryError by remember { mutableStateOf(false) }
 
-    Log.d("AddEditJobScreen", "Initialized with jobId: $jobId, companyId: $companyIdState")
-
-    // Fetch company name if companyIdState is not empty
-    LaunchedEffect(companyIdState) {
-        if (companyIdState.isNotEmpty()) {
-            try {
-                Log.d("AddEditJobScreen", "Fetching company name for companyId: $companyIdState")
-                val companyResponse = apiService.getCompanyName(companyIdState)
-                companyName = companyResponse.companyName
-                Log.d("AddEditJobScreen", "Fetched company name: $companyName")
-            } catch (e: Exception) {
-                Log.e("AddEditJobScreen", "Error fetching company name: ${e.message}")
-            }
+    // Load job details only once
+    LaunchedEffect(jobId) {
+        if (jobId != null) {
+            viewModel.getJobById(jobId)
         }
     }
 
-    // Fetch job details if jobId is provided (Edit Mode)
-    LaunchedEffect(jobId) {
-        if (jobId != null) {
-            try {
-                Log.d("AddEditJobScreen", "Fetching job details for jobId: $jobId")
-                val job = apiService.getJobById(jobId)
-                job?.let {
-                    title = it.title
-                    description = it.description
-                    companyIdState = it.companyId
-                    location = it.location
-                    salary = it.salary.toString()
+    // Set form fields only once after job is loaded
+    LaunchedEffect(job) {
+        job?.let {
+            title = it.title
+            description = it.description
+            companyIdState = it.companyId
+            location = it.location
+            salary = it.salary.toString()
+            viewModel.fetchCompanyName(it.companyId)
+        }
+    }
 
-                    Log.d("AddEditJobScreen", "Job details loaded: $it")
-
-                    // Fetch company name again for the job
-                    val companyResponse = apiService.getCompanyName(it.companyId)
-                    companyName = companyResponse.companyName
-                    Log.d("AddEditJobScreen", "Company Name for job: $companyName")
-                }
-            } catch (e: Exception) {
-                Log.e("AddEditJobScreen", "Error fetching job details: ${e.message}")
-            }
-        } else {
-            Log.d("AddEditJobScreen", "jobId is null, skipping job details fetch.")
+    // Get company name from ViewModel
+    val observedCompanyName by viewModel.companyName.observeAsState("")
+    LaunchedEffect(companyIdState) {
+        if (companyIdState.isNotEmpty()) {
+            viewModel.fetchCompanyName(companyIdState)
+        }
+    }
+    LaunchedEffect(observedCompanyName) {
+        if (!observedCompanyName.isNullOrEmpty()) {
+            companyName = observedCompanyName
         }
     }
 
@@ -116,7 +106,6 @@ fun AddEditJobScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            // Auto-filled company field (Not editable)
             OutlinedTextField(
                 value = companyName,
                 onValueChange = {},
@@ -151,7 +140,7 @@ fun AddEditJobScreen(
             Button(
                 onClick = {
                     if (!salaryError) {
-                        val job = Job(
+                        val jobToSave = Job(
                             _id = jobId ?: "",
                             title = title,
                             description = description,
@@ -163,13 +152,10 @@ fun AddEditJobScreen(
 
                         coroutineScope.launch {
                             try {
-                                Log.d("AddEditJobScreen", "Saving job: $job")
                                 if (jobId != null) {
-                                    apiService.updateJob(jobId, job)
-                                    Log.d("AddEditJobScreen", "Job updated successfully.")
+                                    viewModel.updateJob(jobId, jobToSave)
                                 } else {
-                                    apiService.createJob(job)
-                                    Log.d("AddEditJobScreen", "Job created successfully.")
+                                    viewModel.addJob(jobToSave)
                                 }
                                 navController.popBackStack()
                             } catch (e: Exception) {

@@ -29,7 +29,7 @@ fun JobNavGraph(navController: NavHostController, viewModel: jobviewmodel, apiSe
                 navController = navController,
                 jobId = null,  // Empty jobId for adding
                 companyId = companyId,
-                apiService = apiService
+                viewModel = viewModel
             )
         }
         composable("add_edit_job/{jobId}/{companyId}") { backStackEntry ->
@@ -39,7 +39,7 @@ fun JobNavGraph(navController: NavHostController, viewModel: jobviewmodel, apiSe
                 navController = navController,
                 jobId = jobId,  // Provide jobId for editing
                 companyId = companyId,
-                apiService = apiService
+                viewModel = viewModel
             )
         }
 
@@ -70,8 +70,6 @@ fun JobNavGraph(navController: NavHostController, viewModel: jobviewmodel, apiSe
         composable("companyprofile") {
             CompanyProfileScreen(navController = navController, viewModel = viewModel)
         }
-
-
 
     }
 }
