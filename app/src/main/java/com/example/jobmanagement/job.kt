@@ -1,6 +1,13 @@
 //const express = require('express');
 //const mongoose = require('mongoose');
 //
+//const admin = require('firebase-admin');
+//const serviceAccount = require('./serviceAccountKey.json');
+//
+//admin.initializeApp({
+//    credential: admin.credential.cert(serviceAccount),
+//});
+//
 //const app = express();
 //app.use(express.json());
 //
@@ -39,10 +46,28 @@
 //    size: { type: Number, required: true }, // Number of employees
 //    revenue: { type: String }, // Approximate revenue (optional)
 //    companyType: { type: String, required: true }, // Private, Public, etc.
-//    jobsPosted: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Job' }] // ✅ Store job IDs as ObjectId
+//    jobsPosted: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Job' }] ,
+//    fcmToken: { type: String }
 //});
 //
 //const Company = mongoose.model('Company', companySchema);
+//
+//const sendNotification = async (fcmToken, message) => {
+//    const messagePayload = {
+//        notification: {
+//            title: message.title,
+//            body: message.body,
+//    },
+//        token: fcmToken,
+//    };
+//
+//    try {
+//        await admin.messaging().send(messagePayload);
+//        console.log('Notification sent successfully');
+//    } catch (error) {
+//        console.error('Error sending notification:', error);
+//    }
+//};
 //
 //// Create a Job
 //app.post('/api/jobs', async (req, res) => {
@@ -58,15 +83,28 @@
 //
 //        // Update the company's job list
 //        await Company.findOneAndUpdate(
-//                { uid: companyId }, // ✅ Find by UID
-//        { $push: { jobsPosted: newJob._id } } // ✅ Store job ID as ObjectId
+//                { uid: companyId }, // Find company by UID
+//        { $push: { jobsPosted: newJob._id } } // Store job ID as ObjectId
 //        );
+//
+//        // Find all candidates (this is just a simple example, ideally, filter candidates based on their skills)
+//        const candidates = await Candidate.find();
+//        candidates.forEach(candidate => {
+//            if (candidate.fcmToken) {
+//                const message = {
+//                        title: 'New Job Posted!',
+//                        body: `A new job titled "${title}" has been posted. Apply now!`,
+//                };
+//                sendNotification(candidate.fcmToken, message);  // Send notification to each candidate
+//            }
+//        });
 //
 //        res.status(201).json(newJob);
 //    } catch (err) {
 //        res.status(400).json({ error: err.message });
 //    }
 //});
+//
 //
 //// Get All Jobs (or Filter by Company ID)
 //app.get('/api/jobs', async (req, res) => {
@@ -155,6 +193,7 @@
 //    education: { type: String, required: true },
 //    experience: { type: String },
 //    skills: [String], // Array of skills
+//    fcmToken: { type: String }
 //});
 //
 //const Candidate = mongoose.model('Candidate', candidateSchema);
@@ -186,6 +225,35 @@
 //        res.status(500).json({ error: err.message });
 //    }
 //});
+//
+//app.post('/api/companies/:uid/token', async (req, res) => {
+//    const { fcmToken } = req.body;
+//    try {
+//        const updatedCompany = await Company.findOneAndUpdate(
+//            { uid: req.params.uid },
+//            { fcmToken },
+//            { new: true }
+//        );
+//        res.json(updatedCompany);
+//    } catch (err) {
+//        res.status(400).json({ error: err.message });
+//    }
+//});
+//
+//app.post('/api/candidates/:uid/token', async (req, res) => {
+//    const { fcmToken } = req.body;
+//    try {
+//        const updatedCandidate = await Candidate.findOneAndUpdate(
+//            { uid: req.params.uid },
+//            { fcmToken },
+//            { new: true }
+//        );
+//        res.json(updatedCandidate);
+//    } catch (err) {
+//        res.status(400).json({ error: err.message });
+//    }
+//});
+//
 //
 //// Start the server
 //app.listen(PORT, () => {
