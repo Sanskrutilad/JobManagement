@@ -1,7 +1,6 @@
 package com.example.jobmanagement.screen
 
 import android.util.Log
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -15,12 +14,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.jobmanagement.ApiService
 import com.example.jobmanagement.Company
-import com.example.jobmanagement.jobviewmodel
+import com.example.jobmanagement.FcmToken
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.launch
 
 @Composable
@@ -37,52 +36,39 @@ fun CompanyRegistrationScreen(
     var size by remember { mutableStateOf("") }
     var revenue by remember { mutableStateOf("") }
     var companyType by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }  // New password field
+    var password by remember { mutableStateOf("") }
 
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     val coroutineScope = rememberCoroutineScope()
 
-
-    Scaffold {
-            innerpadding ->
+    Scaffold { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerpadding)
+                .padding(innerPadding)
+                .padding(16.dp)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(10.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(text = "Register Company", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+            Text(
+                text = "Register Company",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
+            )
 
             OutlinedTextField(value = companyName, onValueChange = { companyName = it }, label = { Text("Company Name") })
             OutlinedTextField(value = industry, onValueChange = { industry = it }, label = { Text("Industry") })
             OutlinedTextField(value = location, onValueChange = { location = it }, label = { Text("Location") })
-            OutlinedTextField(
-                value = foundedYear,
-                onValueChange = { foundedYear = it },
-                label = { Text("Founded Year") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-            )
+            OutlinedTextField(value = foundedYear, onValueChange = { foundedYear = it }, label = { Text("Founded Year") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
             OutlinedTextField(value = email, onValueChange = { email = it }, label = { Text("Email") })
-            OutlinedTextField(
-                value = phone,
-                onValueChange = { phone = it },
-                label = { Text("Phone Number") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
-            )
-            OutlinedTextField(
-                value = size,
-                onValueChange = { size = it },
-                label = { Text("Company Size (No. of Employees)") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-            )
+            OutlinedTextField(value = phone, onValueChange = { phone = it }, label = { Text("Phone Number") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone))
+            OutlinedTextField(value = size, onValueChange = { size = it }, label = { Text("Company Size (No. of Employees)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
             OutlinedTextField(value = revenue, onValueChange = { revenue = it }, label = { Text("Revenue (Optional)") })
             OutlinedTextField(value = companyType, onValueChange = { companyType = it }, label = { Text("Company Type") })
 
-            // Password field
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
@@ -110,16 +96,16 @@ fun CompanyRegistrationScreen(
                     }
 
                     isLoading = true
+                    errorMessage = null
 
-                    // Firebase Authentication
                     FirebaseAuth.getInstance().createUserWithEmailAndPassword(email, password)
                         .addOnCompleteListener { task ->
                             if (task.isSuccessful) {
                                 val firebaseUser = task.result?.user
-                                val companyUid = firebaseUser?.uid ?: ""
+                                val companyUid = firebaseUser?.uid ?: return@addOnCompleteListener
 
                                 val company = Company(
-                                    uid = companyUid, // Use Firebase UID
+                                    uid = companyUid,
                                     companyName = companyName,
                                     industry = industry,
                                     location = location,
@@ -129,10 +115,29 @@ fun CompanyRegistrationScreen(
                                     size = size.toIntOrNull() ?: 0,
                                     companyType = companyType
                                 )
-                                // Store company details in Firestore or MongoDB
+
                                 coroutineScope.launch {
                                     try {
                                         apiService.registerCompany(company)
+
+                                        // Fetch and send FCM token
+                                        FirebaseMessaging.getInstance().token.addOnCompleteListener { tokenTask ->
+                                            if (tokenTask.isSuccessful) {
+                                                val token = tokenTask.result
+                                                Log.d("FCM", "Company Token: $token")
+                                                coroutineScope.launch {
+                                                    try {
+                                                        apiService.registerCompanyToken(companyUid, FcmToken(token))
+                                                        Log.d("FCM", "Company FCM token sent to backend.")
+                                                    } catch (e: Exception) {
+                                                        Log.e("FCM", "Error sending company token: ${e.message}")
+                                                    }
+                                                }
+                                            } else {
+                                                Log.e("FCM", "Failed to fetch FCM token", tokenTask.exception)
+                                            }
+                                        }
+
                                         isLoading = false
                                         navController.navigate("companyjob_list/${companyUid}")
                                     } catch (e: Exception) {
@@ -150,9 +155,12 @@ fun CompanyRegistrationScreen(
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !isLoading
             ) {
-                Text("Register")
+                if (isLoading) {
+                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                } else {
+                    Text("Register")
+                }
             }
         }
     }
-
 }

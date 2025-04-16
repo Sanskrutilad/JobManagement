@@ -43,6 +43,10 @@ data class Candidate(
 data class CompanyNameResponse(
     val companyName: String
 )
+data class FcmToken(
+    val fcmToken: String
+)
+
 
 // Retrofit Instance
 object JobApi {
@@ -100,6 +104,12 @@ interface ApiService {
 
     @GET("companies/{uid}")
     suspend fun getCompanyByUid(@Path("uid") uid: String): Company
+
+    @POST("companies/{uid}/token")
+    suspend fun registerCompanyToken(@Path("uid") uid: String, @Body fcmToken: FcmToken)
+
+    @POST("candidates/{uid}/token")
+    suspend fun registerCandidateToken(@Path("uid") uid: String, @Body fcmToken: FcmToken)
 }
 
 // Repository to handle API calls
@@ -115,4 +125,11 @@ class JobRepository {
     suspend fun getCompanyName(companyId: String): String = withContext(Dispatchers.IO) { api.getCompanyName(companyId).companyName }
     suspend fun getCandidateByUid(uid: String) = withContext(Dispatchers.IO) { api.getCandidateByUid(uid) }
     suspend fun getCompanyByUid(uid: String) = withContext(Dispatchers.IO) { api.getCompanyByUid(uid) }
+    suspend fun registerCompanyToken(uid: String, fcmToken: String) = withContext(Dispatchers.IO) {
+        api.registerCompanyToken(uid, FcmToken(fcmToken))
+    }
+
+    suspend fun registerCandidateToken(uid: String, fcmToken: String) = withContext(Dispatchers.IO) {
+        api.registerCandidateToken(uid, FcmToken(fcmToken))
+    }
 }

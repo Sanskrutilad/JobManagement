@@ -1,7 +1,6 @@
 package com.example.jobmanagement.screen
 
 import android.util.Log
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -14,12 +13,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.jobmanagement.ApiService
 import com.example.jobmanagement.Candidate
-import com.example.jobmanagement.jobviewmodel
+import com.example.jobmanagement.FcmToken
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.launch
 
 @Composable
@@ -41,12 +40,12 @@ fun CandidateRegistrationScreen(
 
     val coroutineScope = rememberCoroutineScope()
 
-    Scaffold {
-            innerPadding ->
+    Scaffold { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .padding(16.dp)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(10.dp),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -84,6 +83,7 @@ fun CandidateRegistrationScreen(
             errorMessage?.let {
                 Text(text = it, color = MaterialTheme.colorScheme.error)
             }
+
             Spacer(modifier = Modifier.height(16.dp))
 
             Button(
@@ -94,16 +94,15 @@ fun CandidateRegistrationScreen(
                     }
 
                     isLoading = true
+                    errorMessage = null
 
-                    // 🔹 Register user with Firebase Authentication
                     val auth = FirebaseAuth.getInstance()
                     auth.createUserWithEmailAndPassword(email, password)
                         .addOnCompleteListener { task ->
                             if (task.isSuccessful) {
                                 val firebaseUser = auth.currentUser
-                                val candidateUid = firebaseUser?.uid ?: ""
+                                val candidateUid = firebaseUser?.uid ?: return@addOnCompleteListener
 
-                                // Create candidate object
                                 val candidate = Candidate(
                                     uid = candidateUid,
                                     fullName = fullName,
@@ -115,10 +114,29 @@ fun CandidateRegistrationScreen(
                                     location = location
                                 )
 
-                                // Store candidate details in Firestore or MongoDB
                                 coroutineScope.launch {
                                     try {
                                         apiService.registerCandidate(candidate)
+
+                                        // Fetch and register FCM token
+                                        FirebaseMessaging.getInstance().token.addOnCompleteListener { tokenTask ->
+                                            if (tokenTask.isSuccessful) {
+                                                val token = tokenTask.result
+                                                Log.d("FCM", "Token: $token")
+
+                                                coroutineScope.launch {
+                                                    try {
+                                                        apiService.registerCandidateToken(candidateUid, FcmToken(token))
+                                                        Log.d("FCM", "Token registered successfully")
+                                                    } catch (e: Exception) {
+                                                        Log.e("FCM", "Error sending token to backend: ${e.message}")
+                                                    }
+                                                }
+                                            } else {
+                                                Log.e("FCM", "Fetching FCM token failed", tokenTask.exception)
+                                            }
+                                        }
+
                                         isLoading = false
                                         navController.navigate("candidatejob_list")
                                     } catch (e: Exception) {
