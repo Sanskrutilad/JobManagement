@@ -19,24 +19,34 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import com.example.jobmanagement.ApiService
 import com.example.jobmanagement.Job
 import com.example.jobmanagement.jobviewmodel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CandidateJobListScreen(
-    viewModel: jobviewmodel = viewModel(),
+    apiService: ApiService,
     navController: NavHostController
 ) {
-    val jobs = viewModel.jobs.observeAsState(emptyList())
+    var jobs by remember { mutableStateOf<List<Job>>(emptyList()) }
     var searchQuery by remember { mutableStateOf(TextFieldValue("")) }
+    var isLoading by remember { mutableStateOf(true) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
+    // Fetch jobs once when screen loads
     LaunchedEffect(Unit) {
-        viewModel.fetchJobs()
+        try {
+            val fetchedJobs = apiService.getJobs()
+            jobs = fetchedJobs
+        } catch (e: Exception) {
+            errorMessage = "Failed to fetch jobs: ${e.message}"
+        } finally {
+            isLoading = false
+        }
     }
 
-    // Filter jobs based on search query
-    val filteredJobs = jobs.value.filter {
+    val filteredJobs = jobs.filter {
         it.title.contains(searchQuery.text, ignoreCase = true) ||
                 it.company.contains(searchQuery.text, ignoreCase = true) ||
                 it.location.contains(searchQuery.text, ignoreCase = true)
@@ -60,7 +70,6 @@ fun CandidateJobListScreen(
         }
     ) { innerPadding ->
         Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-            // Search Bar
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
@@ -70,23 +79,31 @@ fun CandidateJobListScreen(
                     .padding(16.dp)
             )
 
-            if (filteredJobs.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "No matching jobs found. Try a different search!",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontSize = 16.sp
-                    )
+            when {
+                isLoading -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
                 }
-            } else {
-                LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-                    items(filteredJobs) { job ->
-                        CandidateJobItem(
-                            job = job
+                errorMessage != null -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(text = errorMessage!!, color = MaterialTheme.colorScheme.error)
+                    }
+                }
+                filteredJobs.isEmpty() -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(
+                            text = "No matching jobs found. Try a different search!",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontSize = 16.sp
                         )
+                    }
+                }
+                else -> {
+                    LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+                        items(filteredJobs) { job ->
+                            CandidateJobItem(job = job)
+                        }
                     }
                 }
             }

@@ -6,6 +6,7 @@ import androidx.compose.material.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -13,43 +14,56 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import com.example.jobmanagement.ApiService
 import com.example.jobmanagement.Candidate
 import com.example.jobmanagement.jobviewmodel
 import com.google.firebase.auth.FirebaseAuth
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CandidateProfileScreen(viewModel: jobviewmodel = viewModel(), navController: NavHostController) {
+fun CandidateProfileScreen(apiService: ApiService, navController: NavHostController) {
     val firebaseUser = FirebaseAuth.getInstance().currentUser
     val candidateUid = firebaseUser?.uid ?: ""
-    if (firebaseUser == null) {
-        Log.e("CandidateProfile", "User is not logged in!")
-    } else {
-        val candidateUid = firebaseUser.uid
-        Log.d("CandidateProfile", "Candidate UID: $candidateUid")
-    }
+
+    var candidate by remember { mutableStateOf<Candidate?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
     LaunchedEffect(candidateUid) {
         if (candidateUid.isNotEmpty()) {
-            viewModel.getCandidateByUid(candidateUid)
+            try {
+                candidate = apiService.getCandidateByUid(candidateUid)
+            } catch (e: Exception) {
+                errorMessage = "Error loading profile: ${e.message}"
+            } finally {
+                isLoading = false
+            }
         }
     }
-    val candidate by viewModel.candidate.observeAsState()
+
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Candidate Profile") }) }
+        topBar = {
+            TopAppBar(
+                title = { Text("Candidate Profile") }
+            )
+        }
     ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
-            contentAlignment = Alignment.Center
-        ) {
+        Box(modifier = Modifier.padding(paddingValues)) {
             when {
-                candidate == null -> CircularProgressIndicator()
+                isLoading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+
+                errorMessage != null -> Text(
+                    text = errorMessage ?: "",
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.align(Alignment.Center)
+                )
+
                 candidate != null -> CandidateProfileContent(candidate!!)
             }
         }

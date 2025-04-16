@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import com.example.jobmanagement.ApiService
 import com.example.jobmanagement.Job
 import com.example.jobmanagement.jobviewmodel
 import com.google.firebase.auth.FirebaseAuth
@@ -28,23 +29,27 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CompanyJobListScreen(
-    viewModel: jobviewmodel = viewModel(),
+    apiService: ApiService,
     navController: NavHostController,
     companyId: String?
 ) {
-    val jobs = viewModel.jobs.observeAsState(emptyList())
+    var jobs by remember { mutableStateOf<List<Job>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
     val coroutineScope = rememberCoroutineScope()
-
-    // Search state
     var searchQuery by remember { mutableStateOf(TextFieldValue("")) }
 
     LaunchedEffect(Unit) {
-        Log.d("CompanyJobListScreen", "Company ID: $companyId")
-        viewModel.fetchJobs()
+        try {
+            val fetchedJobs = apiService.getJobs()
+            jobs = fetchedJobs
+        } catch (e: Exception) {
+            Log.e("CompanyJobListScreen", "Error fetching jobs: ${e.message}")
+        } finally {
+            isLoading = false
+        }
     }
 
-    // Filtering jobs based on search query & provided company ID
-    val filteredJobs = jobs.value.filter {
+    val filteredJobs = jobs.filter {
         it.companyId == companyId && (
                 it.title.contains(searchQuery.text, ignoreCase = true) ||
                         it.company.contains(searchQuery.text, ignoreCase = true) ||
@@ -73,7 +78,6 @@ fun CompanyJobListScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
-                    // Navigate to add job screen (pass companyId directly)
                     navController.navigate("add_job/$companyId")
                 },
                 containerColor = Color(0xFFE1BEE7)
@@ -83,7 +87,6 @@ fun CompanyJobListScreen(
         }
     ) { innerPadding ->
         Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-            // Search Bar
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
@@ -93,13 +96,17 @@ fun CompanyJobListScreen(
                     .padding(16.dp)
             )
 
-            if (filteredJobs.isEmpty()) {
+            if (isLoading) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            } else if (filteredJobs.isEmpty()) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = if (jobs.value.isEmpty()) {
+                        text = if (jobs.isEmpty()) {
                             "You haven't posted any jobs yet. Add a new job!"
                         } else {
                             "No matching jobs found. Try a different search!"
@@ -109,19 +116,18 @@ fun CompanyJobListScreen(
                     )
                 }
             } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize().padding(16.dp)
-                ) {
+                LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp)) {
                     items(filteredJobs) { job ->
                         JobItem(
                             job = job,
                             onUpdate = {
-                                // Navigate to edit job screen with jobId and companyId
                                 navController.navigate("add_edit_job/${job._id}/${companyId}")
                             },
                             onDelete = {
                                 coroutineScope.launch {
-                                    viewModel.deleteJob(job._id ?: "")
+                                    apiService.deleteJob(job._id ?: "")
+                                    // Refresh the list
+                                    jobs = apiService.getJobs()
                                 }
                             },
                             onClick = {
@@ -134,7 +140,6 @@ fun CompanyJobListScreen(
         }
     }
 }
-
 
 
 @Composable

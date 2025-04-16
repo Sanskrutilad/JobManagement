@@ -16,14 +16,16 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.jobmanagement.ApiService
 import com.example.jobmanagement.Candidate
 import com.example.jobmanagement.jobviewmodel
 import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.launch
 
 @Composable
 fun CandidateRegistrationScreen(
     navController: NavController,
-    viewModel: jobviewmodel = viewModel()
+    apiService: ApiService
 ) {
     var fullName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -37,17 +39,23 @@ fun CandidateRegistrationScreen(
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
+    val coroutineScope = rememberCoroutineScope()
+
     Scaffold {
-        innerpadding ->
+            innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerpadding)
+                .padding(innerPadding)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(10.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(text = "Register as Candidate", style = MaterialTheme.typography.headlineMedium,fontWeight = FontWeight.Bold)
+            Text(
+                text = "Register as Candidate",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
+            )
 
             OutlinedTextField(value = fullName, onValueChange = { fullName = it }, label = { Text("Full Name") })
             OutlinedTextField(value = email, onValueChange = { email = it }, label = { Text("Email") })
@@ -108,14 +116,17 @@ fun CandidateRegistrationScreen(
                                 )
 
                                 // Store candidate details in Firestore or MongoDB
-                                viewModel.registerCandidate(candidate, onSuccess = {
-                                    isLoading = false
-                                    navController.navigate("candidatejob_list") // Navigate to Job List screen
-                                }, onError = { error ->
-                                    isLoading = false
-                                    errorMessage = error
-                                    Log.e("CandidateRegistration", "Error: $error")
-                                })
+                                coroutineScope.launch {
+                                    try {
+                                        apiService.registerCandidate(candidate)
+                                        isLoading = false
+                                        navController.navigate("candidatejob_list")
+                                    } catch (e: Exception) {
+                                        isLoading = false
+                                        errorMessage = e.message ?: "Registration failed"
+                                        Log.e("CandidateRegistration", "Error: $errorMessage")
+                                    }
+                                }
                             } else {
                                 isLoading = false
                                 errorMessage = task.exception?.message ?: "Registration failed"
@@ -126,9 +137,12 @@ fun CandidateRegistrationScreen(
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !isLoading
             ) {
-                Text("Register")
+                if (isLoading) {
+                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                } else {
+                    Text("Register")
+                }
             }
         }
     }
-
 }

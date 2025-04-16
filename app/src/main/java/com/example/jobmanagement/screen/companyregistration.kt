@@ -17,14 +17,16 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.jobmanagement.ApiService
 import com.example.jobmanagement.Company
 import com.example.jobmanagement.jobviewmodel
 import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.launch
 
 @Composable
 fun CompanyRegistrationScreen(
     navController: NavController,
-    viewModel: jobviewmodel = viewModel()
+    apiService: ApiService
 ) {
     var companyName by remember { mutableStateOf("") }
     var industry by remember { mutableStateOf("") }
@@ -39,6 +41,9 @@ fun CompanyRegistrationScreen(
 
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    val coroutineScope = rememberCoroutineScope()
+
 
     Scaffold {
             innerpadding ->
@@ -125,14 +130,17 @@ fun CompanyRegistrationScreen(
                                     companyType = companyType
                                 )
                                 // Store company details in Firestore or MongoDB
-                                viewModel.registerCompany(company, onSuccess = {
-                                    isLoading = false
-                                    navController.navigate("companyjob_list/${companyUid}")
-                                }, onError = { error ->
-                                    isLoading = false
-                                    errorMessage = error
-                                    Log.e("CompanyRegistration", "Error: $error")
-                                })
+                                coroutineScope.launch {
+                                    try {
+                                        apiService.registerCompany(company)
+                                        isLoading = false
+                                        navController.navigate("companyjob_list/${companyUid}")
+                                    } catch (e: Exception) {
+                                        isLoading = false
+                                        errorMessage = e.message ?: "Registration failed"
+                                        Log.e("CompanyRegistration", "Error: $errorMessage")
+                                    }
+                                }
                             } else {
                                 isLoading = false
                                 errorMessage = task.exception?.localizedMessage ?: "Registration failed"

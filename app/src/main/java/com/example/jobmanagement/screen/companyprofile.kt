@@ -21,34 +21,57 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import com.example.jobmanagement.ApiService
 import com.example.jobmanagement.Candidate
 import com.example.jobmanagement.Company
 import com.example.jobmanagement.jobviewmodel
 import com.google.firebase.auth.FirebaseAuth
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CompanyProfileScreen(viewModel: jobviewmodel = viewModel(), navController: NavHostController) {
+fun CompanyProfileScreen(apiService: ApiService, navController: NavHostController) {
     val firebaseUser = FirebaseAuth.getInstance().currentUser
     val companyUid = firebaseUser?.uid ?: ""
 
+    var company by remember { mutableStateOf<Company?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
     LaunchedEffect(companyUid) {
         if (companyUid.isNotEmpty()) {
-            viewModel.getCompanyByUid(companyUid)
+            try {
+                company = apiService.getCompanyByUid(companyUid)
+            } catch (e: Exception) {
+                errorMessage = "Error loading profile: ${e.message}"
+            } finally {
+                isLoading = false
+            }
         }
     }
 
-    val company by viewModel.company.observeAsState()
-
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Company Profile") }) }
+        topBar = {
+            TopAppBar(
+                title = { Text("Company Profile") }
+            )
+        }
     ) { paddingValues ->
         Box(modifier = Modifier.padding(paddingValues)) {
-            company?.let {
-                CompanyProfileContent(it,navController)
-            } ?: CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            when {
+                isLoading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+
+                errorMessage != null -> Text(
+                    text = errorMessage ?: "",
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.align(Alignment.Center)
+                )
+
+                company != null -> CompanyProfileContent(company!!, navController)
+            }
         }
     }
 }
+
 
 @Composable
 fun CompanyProfileContent(company: Company, navController: NavHostController) {

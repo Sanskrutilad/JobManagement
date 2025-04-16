@@ -20,16 +20,16 @@ fun JobNavGraph(navController: NavHostController, viewModel: jobviewmodel, apiSe
     NavHost(navController, startDestination = "user_selection") {
         composable("companyjob_list/{companyId}") { backStackEntry ->
             val companyId = backStackEntry.arguments?.getString("companyId")
-            CompanyJobListScreen(viewModel, navController,companyId)
+            CompanyJobListScreen(apiService, navController,companyId)
         }
-        composable("candidatejob_list") { CandidateJobListScreen(viewModel, navController) }
+        composable("candidatejob_list") { CandidateJobListScreen(apiService, navController) }
         composable("add_job/{companyId}") { backStackEntry ->
             val companyId = backStackEntry.arguments?.getString("companyId") ?: ""
             AddEditJobScreen(
                 navController = navController,
                 jobId = null,  // Empty jobId for adding
                 companyId = companyId,
-                viewModel = viewModel
+                apiService = apiService
             )
         }
         composable("add_edit_job/{jobId}/{companyId}") { backStackEntry ->
@@ -39,14 +39,14 @@ fun JobNavGraph(navController: NavHostController, viewModel: jobviewmodel, apiSe
                 navController = navController,
                 jobId = jobId,  // Provide jobId for editing
                 companyId = companyId,
-                viewModel = viewModel
+                apiService = apiService
             )
         }
 
         composable("job_details/{jobId}/{companyId}") { backStackEntry ->
             val jobId = backStackEntry.arguments?.getString("jobId") ?: ""
             val companyId = backStackEntry.arguments?.getString("companyId") ?: "" // Fixed here
-            JobDetailsScreen(jobId, companyId)
+            JobDetailsScreen(jobId, companyId,apiService)
         }
 
         composable("user_selection") {
@@ -58,17 +58,17 @@ fun JobNavGraph(navController: NavHostController, viewModel: jobviewmodel, apiSe
         }
 
         composable("candidateRegistration") {
-            CandidateRegistrationScreen(navController)
+            CandidateRegistrationScreen(navController,apiService)
         }
 
         composable("companyRegistration") {
-            CompanyRegistrationScreen(navController = navController, viewModel = viewModel)
+            CompanyRegistrationScreen(navController = navController, apiService = apiService)
         }
         composable("candidateprofile") {
-            CandidateProfileScreen(navController = navController, viewModel = viewModel)
+            CandidateProfileScreen(navController = navController, apiService = apiService)
         }
         composable("companyprofile") {
-            CompanyProfileScreen(navController = navController, viewModel = viewModel)
+            CompanyProfileScreen(navController = navController, apiService = apiService)
         }
 
     }
