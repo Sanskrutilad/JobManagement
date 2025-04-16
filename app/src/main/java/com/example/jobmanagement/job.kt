@@ -254,6 +254,22 @@
 //    }
 //});
 //
+//app.get('/check-phone', async (req, res) => {
+//    const phone = req.query.phone;
+//    try {
+//        const candidate = await Candidate.findOne({ phone });
+//        const company = await Company.findOne({ phone });
+//
+//        if (candidate || company) {
+//            return res.json({ exists: true, userType: candidate ? "candidate" : "company" });
+//        } else {
+//            return res.json({ exists: false });
+//        }
+//    } catch (error) {
+//        res.status(500).json({ error: "Server error" });
+//    }
+//});
+//
 //
 //// Start the server
 //app.listen(PORT, () => {
