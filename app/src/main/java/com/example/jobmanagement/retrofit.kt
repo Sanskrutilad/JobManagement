@@ -112,7 +112,7 @@ interface ApiService {
     suspend fun registerCandidateToken(@Path("uid") uid: String, @Body fcmToken: FcmToken)
 }
 
-// Repository to handle API calls
+ //Repository to handle API calls
 class JobRepository {
     private val api = createApiService()
     suspend fun registerCandidate(candidate: Candidate) = withContext(Dispatchers.IO) { api.registerCandidate(candidate) }

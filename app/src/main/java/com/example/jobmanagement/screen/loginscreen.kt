@@ -1,8 +1,6 @@
 package com.example.jobmanagement.screen
 
 import android.app.Activity
-import android.util.Log
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
@@ -14,16 +12,16 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavController
 import com.google.firebase.FirebaseException
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.PhoneAuthCredential
-import com.google.firebase.auth.PhoneAuthOptions
-import com.google.firebase.auth.PhoneAuthProvider
+import com.google.firebase.auth.*
+import kotlinx.coroutines.*
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import org.json.JSONObject
 
 @Composable
 fun LoginScreen(navController: NavController, userType: String) {
@@ -50,14 +48,20 @@ fun LoginScreen(navController: NavController, userType: String) {
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(text = "Login as ${userType.replaceFirstChar { it.uppercase() }}", fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text(
+                text = "Login as ${userType.replaceFirstChar { it.uppercase() }}",
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             Row {
                 Button(
                     onClick = { loginMethod = "email" },
-                    colors = ButtonDefaults.buttonColors(if (loginMethod == "email") MaterialTheme.colorScheme.primary else Color.LightGray),
+                    colors = ButtonDefaults.buttonColors(
+                        if (loginMethod == "email") MaterialTheme.colorScheme.primary else Color.LightGray
+                    ),
                     modifier = Modifier.weight(1f)
                 ) {
                     Text("Email Login")
@@ -65,7 +69,9 @@ fun LoginScreen(navController: NavController, userType: String) {
                 Spacer(modifier = Modifier.width(8.dp))
                 Button(
                     onClick = { loginMethod = "phone" },
-                    colors = ButtonDefaults.buttonColors(if (loginMethod == "phone") MaterialTheme.colorScheme.primary else Color.LightGray),
+                    colors = ButtonDefaults.buttonColors(
+                        if (loginMethod == "phone") MaterialTheme.colorScheme.primary else Color.LightGray
+                    ),
                     modifier = Modifier.weight(1f)
                 ) {
                     Text("Phone Login")
@@ -142,37 +148,68 @@ fun LoginScreen(navController: NavController, userType: String) {
                             }
                     } else {
                         if (verificationId == null) {
-                            val options = PhoneAuthOptions.newBuilder(auth)
-                                .setPhoneNumber(phoneNumber)
-                                .setTimeout(60L, java.util.concurrent.TimeUnit.SECONDS)
-                                .setActivity(context as Activity)
-                                .setCallbacks(object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
-                                    override fun onVerificationCompleted(credential: PhoneAuthCredential) {
-                                        auth.signInWithCredential(credential).addOnCompleteListener { task ->
-                                            isLoading = false
-                                            if (task.isSuccessful) {
-                                                val uid = auth.currentUser?.uid ?: ""
-                                                val route = if (userType == "candidate") "candidatejob_list" else "companyjob_list/$uid"
-                                                navController.navigate(route)
+                            CoroutineScope(Dispatchers.IO).launch {
+                                try {
+                                    val client = OkHttpClient()
+                                    val encodedPhone = java.net.URLEncoder.encode(phoneNumber, "UTF-8")
+                                    val url = "http://192.168.71.52:5000/check-phone?phone=$encodedPhone"
+                                    val request = Request.Builder().url(url).get().build()
+
+                                    val response = client.newCall(request).execute()
+                                    val body = response.body?.string()
+
+                                    withContext(Dispatchers.Main) {
+                                        if (response.isSuccessful && body != null) {
+                                            val json = JSONObject(body)
+                                            if (json.getBoolean("exists")) {
+                                                val options = PhoneAuthOptions.newBuilder(auth)
+                                                    .setPhoneNumber(phoneNumber)
+                                                    .setTimeout(60L, java.util.concurrent.TimeUnit.SECONDS)
+                                                    .setActivity(context as Activity)
+                                                    .setCallbacks(object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
+                                                        override fun onVerificationCompleted(credential: PhoneAuthCredential) {
+                                                            auth.signInWithCredential(credential).addOnCompleteListener { task ->
+                                                                isLoading = false
+                                                                if (task.isSuccessful) {
+                                                                    val uid = auth.currentUser?.uid ?: ""
+                                                                    val route = if (userType == "candidate") "candidatejob_list" else "companyjob_list/$uid"
+                                                                    navController.navigate(route)
+                                                                } else {
+                                                                    errorMessage = task.exception?.localizedMessage
+                                                                }
+                                                            }
+                                                        }
+
+                                                        override fun onVerificationFailed(e: FirebaseException) {
+                                                            isLoading = false
+                                                            errorMessage = e.localizedMessage
+                                                        }
+
+                                                        override fun onCodeSent(verificationIdParam: String, token: PhoneAuthProvider.ForceResendingToken) {
+                                                            verificationId = verificationIdParam
+                                                            isLoading = false
+                                                        }
+                                                    })
+                                                    .build()
+                                                PhoneAuthProvider.verifyPhoneNumber(options)
                                             } else {
-                                                errorMessage = task.exception?.localizedMessage
+                                                isLoading = false
+                                                errorMessage = "Phone number not registered."
                                             }
+                                        } else {
+                                            isLoading = false
+                                            errorMessage = "Server error. Please try again."
                                         }
                                     }
-
-                                    override fun onVerificationFailed(e: FirebaseException) {
+                                } catch (e: Exception) {
+                                    withContext(Dispatchers.Main) {
                                         isLoading = false
-                                        errorMessage = e.localizedMessage
+                                        errorMessage = "Error: ${e.localizedMessage}"
                                     }
-
-                                    override fun onCodeSent(verificationIdParam: String, token: PhoneAuthProvider.ForceResendingToken) {
-                                        verificationId = verificationIdParam
-                                        isLoading = false
-                                    }
-                                })
-                                .build()
-                            PhoneAuthProvider.verifyPhoneNumber(options)
+                                }
+                            }
                         } else {
+                            // ✅ Verify OTP
                             val credential = PhoneAuthProvider.getCredential(verificationId!!, otpCode)
                             auth.signInWithCredential(credential).addOnCompleteListener { task ->
                                 isLoading = false
@@ -190,7 +227,11 @@ fun LoginScreen(navController: NavController, userType: String) {
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !isLoading
             ) {
-                Text(text = if (isLoading) "Processing..." else if (loginMethod == "phone" && verificationId == null) "Send OTP" else "Login")
+                Text(
+                    text = if (isLoading) "Processing..."
+                    else if (loginMethod == "phone" && verificationId == null) "Send OTP"
+                    else "Login"
+                )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -206,12 +247,12 @@ fun LoginScreen(navController: NavController, userType: String) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Needed for reCAPTCHA handling in PhoneAuth
+            // Required for Firebase Phone Auth (reCAPTCHA)
             AndroidView(factory = { context ->
                 val frameLayout = android.widget.FrameLayout(context)
                 frameLayout.id = android.view.View.generateViewId()
                 frameLayout
-            }, modifier = Modifier.size(1.dp)) // Hidden layout to support reCAPTCHA
+            }, modifier = Modifier.size(1.dp))
         }
     }
 }

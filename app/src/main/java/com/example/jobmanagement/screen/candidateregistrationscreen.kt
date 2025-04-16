@@ -58,12 +58,14 @@ fun CandidateRegistrationScreen(
 
             OutlinedTextField(value = fullName, onValueChange = { fullName = it }, label = { Text("Full Name") })
             OutlinedTextField(value = email, onValueChange = { email = it }, label = { Text("Email") })
+
             OutlinedTextField(
                 value = phone,
                 onValueChange = { phone = it },
                 label = { Text("Phone Number") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
             )
+
             OutlinedTextField(value = skills, onValueChange = { skills = it }, label = { Text("Skills (comma-separated)") })
             OutlinedTextField(
                 value = experience,
@@ -90,6 +92,13 @@ fun CandidateRegistrationScreen(
                 onClick = {
                     if (fullName.isBlank() || email.isBlank() || phone.isBlank() || skills.isBlank() || education.isBlank() || location.isBlank() || password.isBlank()) {
                         errorMessage = "All fields must be filled"
+                        return@Button
+                    }
+
+                    // Validate phone number format (e.g., +91XXXXXXXXXX)
+                    val phoneRegex = "^\\+?[0-9]{10,15}$".toRegex()
+                    if (!phone.matches(phoneRegex)) {
+                        errorMessage = "Invalid phone number format"
                         return@Button
                     }
 

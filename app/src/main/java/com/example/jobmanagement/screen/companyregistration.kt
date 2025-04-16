@@ -65,6 +65,13 @@ fun CompanyRegistrationScreen(
             OutlinedTextField(value = foundedYear, onValueChange = { foundedYear = it }, label = { Text("Founded Year") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
             OutlinedTextField(value = email, onValueChange = { email = it }, label = { Text("Email") })
             OutlinedTextField(value = phone, onValueChange = { phone = it }, label = { Text("Phone Number") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone))
+
+            // Validate phone number
+            val phoneRegex = "^\\+?[0-9]{10,15}$".toRegex()
+            if (!phone.matches(phoneRegex)) {
+                errorMessage = "Invalid phone number format"
+            }
+
             OutlinedTextField(value = size, onValueChange = { size = it }, label = { Text("Company Size (No. of Employees)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
             OutlinedTextField(value = revenue, onValueChange = { revenue = it }, label = { Text("Revenue (Optional)") })
             OutlinedTextField(value = companyType, onValueChange = { companyType = it }, label = { Text("Company Type") })
@@ -92,6 +99,13 @@ fun CompanyRegistrationScreen(
 
                     if (password.length < 6) {
                         errorMessage = "Password must be at least 6 characters"
+                        return@Button
+                    }
+
+                    // Validate password strength
+                    val passwordRegex = "(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[!@#\$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>\\/?]).{6,}".toRegex()
+                    if (!password.matches(passwordRegex)) {
+                        errorMessage = "Password must include at least one uppercase letter, one number, and one special character"
                         return@Button
                     }
 
