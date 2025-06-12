@@ -62,7 +62,7 @@ object JobApi {
 
 fun createApiService(): ApiService {
     val retrofit = Retrofit.Builder()
-        .baseUrl("http://192.168.71.52:5000/api/") // Updated URL
+        .baseUrl("http://10.0.2.2:5000/api/") // Updated URL
         .addConverterFactory(GsonConverterFactory.create())
         .build()
     return retrofit.create(ApiService::class.java)
